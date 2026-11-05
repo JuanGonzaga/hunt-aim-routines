@@ -1,6 +1,61 @@
 import { test, expect } from "@playwright/test";
 import { defaults, makeDrill } from "../../src/data.ts";
 import { freshStore, KEY } from "../../src/core.ts";
+
+test("restart clears results and skipped work remains partial", async ({
+  page,
+}) => {
+  const store = freshStore();
+  store.routines = [
+    {
+      ...defaults()[0],
+      name: "Reinício",
+      drills: [
+        {
+          ...makeDrill("micro"),
+          mode: "reps",
+          prep: 0,
+          seconds: 1,
+          sets: 2,
+          rest: 20,
+        },
+      ],
+    },
+  ];
+  await page.addInitScript(
+    ({ key, value }) => {
+      localStorage.setItem(key, JSON.stringify(value));
+    },
+    { key: KEY, value: store },
+  );
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Ver rotina Reinício", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Ir para sessão" }).click();
+  await page.getByRole("button", { name: "Iniciar", exact: true }).click();
+  await expect(
+    page.getByText("Confirme a série quando terminar"),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Confirmar série" }).click();
+  await page.locator(".result-detail summary").click();
+  await page.getByLabel("Tentativas", { exact: true }).fill("5");
+  await page.getByLabel("Acertos", { exact: true }).fill("4");
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Reiniciar", exact: true }).click();
+  await page.getByRole("button", { name: "Iniciar", exact: true }).click();
+  await expect(
+    page.getByText("Confirme a série quando terminar"),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Confirmar série" }).click();
+  await page.locator(".result-detail summary").click();
+  await expect(page.getByLabel("Tentativas", { exact: true })).toHaveValue("");
+  await expect(page.getByLabel("Acertos", { exact: true })).toHaveValue("");
+  await page.getByRole("button", { name: "Pular etapa" }).click();
+  await page.getByRole("button", { name: "Pular etapa" }).click();
+  await page.getByRole("button", { name: "Salvar no histórico" }).click();
+  await expect(page.locator(".history-entry")).toContainText("Parcial");
+});
 test("choose routine, inspect explicit difficulty changes and start warmup", async ({
   page,
 }) => {

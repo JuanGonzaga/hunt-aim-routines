@@ -364,7 +364,9 @@ export function SessionView({
                   advance(
                     {
                       ...current,
-                      skipped: current.skipped || phase.kind === "work",
+                      skipped:
+                        current.skipped ||
+                        current.phases[current.phase]?.kind === "work",
                     },
                     Date.now(),
                   ),
@@ -394,6 +396,7 @@ export function SessionView({
                     "Reiniciar a sessão? O progresso atual será descartado.",
                   )
                 ) {
+                  setDraftResults([]);
                   setSession({
                     ...s,
                     phase: 0,
